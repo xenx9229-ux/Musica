@@ -1,0 +1,331 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Default-Deny Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // 2. Hardened Global Helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // 3. Entity Validation Blueprints
+    function isValidUserPrivate(data) {
+      return data.userId is string && data.userId.size() <= 128 &&
+             data.username is string && data.username.size() >= 2 && data.username.size() <= 30 &&
+             data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 50 &&
+             (!('email' in data) || (data.email is string && data.email.size() <= 120)) &&
+             (!('followingArtistIds' in data) || (data.followingArtistIds is list && data.followingArtistIds.size() <= 100 && (data.followingArtistIds.size() == 0 || data.followingArtistIds[0] is string))) &&
+             (!('streakDays' in data) || (data.streakDays is int && data.streakDays >= 0 && data.streakDays <= 100000)) &&
+             (!('lastActiveDate' in data) || (data.lastActiveDate is string && data.lastActiveDate.size() <= 30)) &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidPublicProfile(data) {
+      return data.userId is string && data.userId.size() <= 128 &&
+             data.username is string && data.username.size() >= 2 && data.username.size() <= 30 &&
+             data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 50 &&
+             (!('bio' in data) || (data.bio is string && data.bio.size() <= 200)) &&
+             (!('avatarIndex' in data) || (data.avatarIndex is int && data.avatarIndex >= 0 && data.avatarIndex <= 50)) &&
+             (!('borderStyle' in data) || (data.borderStyle is string && data.borderStyle.size() <= 40)) &&
+             (!('frameStyle' in data) || (data.frameStyle is string && data.frameStyle.size() <= 40)) &&
+             (!('streakDays' in data) || (data.streakDays is int && data.streakDays >= 0 && data.streakDays <= 100000)) &&
+             (!('followersCount' in data) || (data.followersCount is int && data.followersCount >= 0)) &&
+             data.discoverable is bool &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidSharedPlaylist(data) {
+      return data.ownerId is string && data.ownerId.size() <= 128 &&
+             (!('ownerName' in data) || (data.ownerName is string && data.ownerName.size() <= 50)) &&
+             data.name is string && data.name.size() >= 1 && data.name.size() <= 80 &&
+             data.shareCode is string && data.shareCode.size() >= 4 && data.shareCode.size() <= 40 &&
+             data.publicShared is bool &&
+             (!('trackTitles' in data) || (data.trackTitles is list && data.trackTitles.size() <= 100 && (data.trackTitles.size() == 0 || data.trackTitles[0] is string))) &&
+             (!('trackArtists' in data) || (data.trackArtists is list && data.trackArtists.size() <= 100 && (data.trackArtists.size() == 0 || data.trackArtists[0] is string))) &&
+             (!('trackIds' in data) || (data.trackIds is list && data.trackIds.size() <= 100 && (data.trackIds.size() == 0 || data.trackIds[0] is string))) &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidStoryItem(data) {
+      return data.authorId is string && data.authorId.size() <= 128 &&
+             data.authorUsername is string && data.authorUsername.size() >= 2 && data.authorUsername.size() <= 30 &&
+             data.mediaType in ['PHOTO', 'LYRIC', 'STREAK_PAD', 'TRACK'] &&
+             data.caption is string && data.caption.size() >= 1 && data.caption.size() <= 300 &&
+             (!('trackId' in data) || (data.trackId is string && data.trackId.size() <= 128)) &&
+             (!('trackTitle' in data) || (data.trackTitle is string && data.trackTitle.size() <= 120)) &&
+             (!('trackArtist' in data) || (data.trackArtist is string && data.trackArtist.size() <= 100)) &&
+             (!('streakCount' in data) || (data.streakCount is int && data.streakCount >= 0 && data.streakCount <= 100000)) &&
+             (!('accentColorHex' in data) || (data.accentColorHex is string && data.accentColorHex.size() <= 20)) &&
+             data.visibility == 'public' &&
+             data.createdAt is timestamp && data.createdAt <= request.time;
+    }
+
+    function isValidSocialPost(data) {
+      return data.authorId is string && data.authorId.size() <= 128 &&
+             data.authorUsername is string && data.authorUsername.size() >= 2 && data.authorUsername.size() <= 30 &&
+             data.trackId is string && data.trackId.size() >= 1 && data.trackId.size() <= 128 &&
+             data.trackTitle is string && data.trackTitle.size() >= 1 && data.trackTitle.size() <= 120 &&
+             data.trackArtist is string && data.trackArtist.size() >= 1 && data.trackArtist.size() <= 100 &&
+             (!('coverUrl' in data) || (data.coverUrl is string && data.coverUrl.size() <= 500)) &&
+             (!('caption' in data) || (data.caption is string && data.caption.size() <= 300)) &&
+             data.likesCount is int && data.likesCount >= 0 &&
+             data.visibility == 'public' &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidDirectChat(data) {
+      return data.participantIds is list && data.participantIds.size() == 2 &&
+             data.participantIds[0] is string && data.participantIds[1] is string &&
+             data.participantNames is list && data.participantNames.size() == 2 &&
+             data.participantNames[0] is string && data.participantNames[1] is string &&
+             (!('lastMessage' in data) || (data.lastMessage is string && data.lastMessage.size() <= 500)) &&
+             data.mutualStreak is int && data.mutualStreak >= 0 && data.mutualStreak <= 100000 &&
+             (!('lastStreakDate' in data) || (data.lastStreakDate is string && data.lastStreakDate.size() <= 30)) &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidChatMessage(data) {
+      return data.chatId is string && data.chatId.size() >= 1 && data.chatId.size() <= 128 &&
+             data.senderId is string && data.senderId.size() <= 128 &&
+             data.senderName is string && data.senderName.size() >= 1 && data.senderName.size() <= 50 &&
+             data.participantIds is list && data.participantIds.size() == 2 &&
+             data.participantIds[0] is string && data.participantIds[1] is string &&
+             data.text is string && data.text.size() >= 1 && data.text.size() <= 1000 &&
+             data.bubbleStyle is string && data.bubbleStyle.size() >= 1 && data.bubbleStyle.size() <= 40 &&
+             data.edited is bool &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidMusicRoom(data) {
+      return data.hostId is string && data.hostId.size() <= 128 &&
+             data.hostName is string && data.hostName.size() >= 1 && data.hostName.size() <= 50 &&
+             data.roomName is string && data.roomName.size() >= 1 && data.roomName.size() <= 80 &&
+             data.inviteCode is string && data.inviteCode.size() >= 4 && data.inviteCode.size() <= 32 &&
+             data.publicRoom is bool &&
+             data.memberUids is list && data.memberUids.size() >= 1 && data.memberUids.size() <= 50 &&
+             data.memberUids[0] is string &&
+             (!('currentTrackId' in data) || (data.currentTrackId is string && data.currentTrackId.size() <= 128)) &&
+             (!('currentTrackTitle' in data) || (data.currentTrackTitle is string && data.currentTrackTitle.size() <= 120)) &&
+             (!('currentTrackArtist' in data) || (data.currentTrackArtist is string && data.currentTrackArtist.size() <= 100)) &&
+             (!('currentTrackCover' in data) || (data.currentTrackCover is string && data.currentTrackCover.size() <= 500)) &&
+             (!('currentTrackStreamUrl' in data) || (data.currentTrackStreamUrl is string && data.currentTrackStreamUrl.size() <= 500)) &&
+             data.playing is bool &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidRoomMessage(data) {
+      return data.roomId is string && data.roomId.size() >= 1 && data.roomId.size() <= 128 &&
+             data.senderId is string && data.senderId.size() <= 128 &&
+             data.senderName is string && data.senderName.size() >= 1 && data.senderName.size() <= 50 &&
+             data.text is string && data.text.size() >= 1 && data.text.size() <= 500 &&
+             data.publicRoom is bool &&
+             data.createdAt is timestamp && data.createdAt <= request.time;
+    }
+
+    // 4. Collection Rules
+
+    // Private User Account (PII isolated strictly to owner)
+    match /users/{userId} {
+      allow get, list: if isOwner(userId);
+      allow create: if isOwner(userId) &&
+                       isValidId(userId) &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().keys().hasAll(['userId', 'username', 'displayName', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'email', 'username', 'displayName', 'followingArtistIds', 'streakDays', 'lastActiveDate', 'createdAt', 'updatedAt']) &&
+                       isValidUserPrivate(incoming());
+      allow update: if isOwner(userId) &&
+                       isValidId(userId) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       isValidUserPrivate(incoming()) &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['email', 'username', 'displayName', 'followingArtistIds', 'streakDays', 'lastActiveDate', 'updatedAt']);
+      allow delete: if isOwner(userId);
+    }
+
+    // Public Discoverable Profiles (No PII)
+    match /public_profiles/{userId} {
+      allow get: if isSignedIn() && isValidId(userId) && (existing().discoverable == true || existing().userId == request.auth.uid);
+      allow list: if isSignedIn() && (resource.data.discoverable == true || resource.data.userId == request.auth.uid);
+      allow create: if isOwner(userId) &&
+                       isValidId(userId) &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().keys().hasAll(['userId', 'username', 'displayName', 'discoverable', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'username', 'displayName', 'bio', 'avatarIndex', 'borderStyle', 'frameStyle', 'streakDays', 'followersCount', 'discoverable', 'createdAt', 'updatedAt']) &&
+                       isValidPublicProfile(incoming());
+      allow update: if isSignedIn() &&
+                       isValidId(userId) &&
+                       isValidPublicProfile(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt && (
+                         (isOwner(userId) && incoming().diff(existing()).affectedKeys().hasOnly(['username', 'displayName', 'bio', 'avatarIndex', 'borderStyle', 'frameStyle', 'streakDays', 'followersCount', 'discoverable', 'updatedAt'])) ||
+                         (incoming().diff(existing()).affectedKeys().hasOnly(['followersCount', 'updatedAt']))
+                       );
+      allow delete: if isOwner(userId);
+    }
+
+    // Shared Playlists (for Link Sharing & Playlist Compatibility Match)
+    match /shared_playlists/{playlistId} {
+      allow get: if isSignedIn() && isValidId(playlistId) && (existing().publicShared == true || existing().ownerId == request.auth.uid);
+      allow list: if isSignedIn() && (resource.data.publicShared == true || resource.data.ownerId == request.auth.uid);
+      allow create: if isSignedIn() &&
+                       isValidId(playlistId) &&
+                       incoming().ownerId == request.auth.uid &&
+                       incoming().keys().hasAll(['ownerId', 'name', 'shareCode', 'publicShared', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['ownerId', 'ownerName', 'name', 'shareCode', 'publicShared', 'trackTitles', 'trackArtists', 'trackIds', 'createdAt', 'updatedAt']) &&
+                       isValidSharedPlaylist(incoming());
+      allow update: if isSignedIn() &&
+                       isValidId(playlistId) &&
+                       existing().ownerId == request.auth.uid &&
+                       incoming().ownerId == existing().ownerId &&
+                       incoming().createdAt == existing().createdAt &&
+                       isValidSharedPlaylist(incoming()) &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['ownerName', 'name', 'publicShared', 'trackTitles', 'trackArtists', 'trackIds', 'updatedAt']);
+      allow delete: if isSignedIn() && isValidId(playlistId) && existing().ownerId == request.auth.uid;
+    }
+
+    // Instagram-style Stories & Streak Pads
+    match /stories/{storyId} {
+      allow get: if isSignedIn() && isValidId(storyId) && (existing().visibility == 'public' || existing().authorId == request.auth.uid);
+      allow list: if isSignedIn() && (resource.data.visibility == 'public' || resource.data.authorId == request.auth.uid);
+      allow create: if isSignedIn() &&
+                       isValidId(storyId) &&
+                       incoming().authorId == request.auth.uid &&
+                       incoming().keys().hasAll(['authorId', 'authorUsername', 'mediaType', 'caption', 'visibility', 'createdAt']) &&
+                       incoming().keys().hasOnly(['authorId', 'authorUsername', 'mediaType', 'caption', 'trackId', 'trackTitle', 'trackArtist', 'streakCount', 'accentColorHex', 'visibility', 'createdAt']) &&
+                       isValidStoryItem(incoming());
+      allow update: if false;
+      allow delete: if isSignedIn() && isValidId(storyId) && existing().authorId == request.auth.uid;
+    }
+
+    // Music Reposts & Social Feed
+    match /posts/{postId} {
+      allow get: if isSignedIn() && isValidId(postId) && (existing().visibility == 'public' || existing().authorId == request.auth.uid);
+      allow list: if isSignedIn() && (resource.data.visibility == 'public' || resource.data.authorId == request.auth.uid);
+      allow create: if isSignedIn() &&
+                       isValidId(postId) &&
+                       incoming().authorId == request.auth.uid &&
+                       incoming().keys().hasAll(['authorId', 'authorUsername', 'trackId', 'trackTitle', 'trackArtist', 'likesCount', 'visibility', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['authorId', 'authorUsername', 'trackId', 'trackTitle', 'trackArtist', 'coverUrl', 'caption', 'likesCount', 'visibility', 'createdAt', 'updatedAt']) &&
+                       isValidSocialPost(incoming());
+      allow update: if isSignedIn() &&
+                       isValidId(postId) &&
+                       isValidSocialPost(incoming()) &&
+                       incoming().authorId == existing().authorId &&
+                       incoming().createdAt == existing().createdAt && (
+                         (existing().authorId == request.auth.uid && incoming().diff(existing()).affectedKeys().hasOnly(['caption', 'likesCount', 'updatedAt'])) ||
+                         (incoming().diff(existing()).affectedKeys().hasOnly(['likesCount', 'updatedAt']) && incoming().likesCount == existing().likesCount + 1)
+                       );
+      allow delete: if isSignedIn() && isValidId(postId) && existing().authorId == request.auth.uid;
+    }
+
+    // Direct Chats & TikTok-style Mutual Streaks
+    match /chats/{chatId} {
+      allow get: if isSignedIn() && isValidId(chatId) && (request.auth.uid in existing().participantIds);
+      allow list: if isSignedIn() && (request.auth.uid in resource.data.participantIds);
+      allow create: if isSignedIn() &&
+                       isValidId(chatId) &&
+                       (request.auth.uid in incoming().participantIds) &&
+                       incoming().keys().hasAll(['participantIds', 'participantNames', 'mutualStreak', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['participantIds', 'participantNames', 'lastMessage', 'mutualStreak', 'lastStreakDate', 'createdAt', 'updatedAt']) &&
+                       isValidDirectChat(incoming());
+      allow update: if isSignedIn() &&
+                       isValidId(chatId) &&
+                       (request.auth.uid in existing().participantIds) &&
+                       incoming().participantIds == existing().participantIds &&
+                       incoming().createdAt == existing().createdAt &&
+                       isValidDirectChat(incoming()) &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['lastMessage', 'mutualStreak', 'lastStreakDate', 'updatedAt']);
+      allow delete: if isSignedIn() && isValidId(chatId) && (request.auth.uid in existing().participantIds);
+
+      match /messages/{messageId} {
+        allow get: if isSignedIn() && isValidId(messageId) && (request.auth.uid in existing().participantIds);
+        allow list: if isSignedIn() && (request.auth.uid in resource.data.participantIds);
+        allow create: if isSignedIn() &&
+                         isValidId(messageId) &&
+                         incoming().senderId == request.auth.uid &&
+                         (request.auth.uid in incoming().participantIds) &&
+                         incoming().chatId == chatId &&
+                         incoming().keys().hasAll(['chatId', 'senderId', 'senderName', 'participantIds', 'text', 'bubbleStyle', 'edited', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['chatId', 'senderId', 'senderName', 'participantIds', 'text', 'bubbleStyle', 'edited', 'createdAt', 'updatedAt']) &&
+                         isValidChatMessage(incoming());
+        allow update: if isSignedIn() &&
+                         isValidId(messageId) &&
+                         existing().senderId == request.auth.uid &&
+                         incoming().senderId == existing().senderId &&
+                         incoming().chatId == existing().chatId &&
+                         incoming().participantIds == existing().participantIds &&
+                         incoming().createdAt == existing().createdAt &&
+                         isValidChatMessage(incoming()) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['text', 'bubbleStyle', 'edited', 'updatedAt']);
+        allow delete: if isSignedIn() && isValidId(messageId) && existing().senderId == request.auth.uid;
+      }
+    }
+
+    // Discord-style Music Listening Rooms
+    match /rooms/{roomId} {
+      allow get: if isSignedIn() && isValidId(roomId) && (existing().publicRoom == true || request.auth.uid in existing().memberUids);
+      allow list: if isSignedIn() && (resource.data.publicRoom == true || request.auth.uid in resource.data.memberUids);
+      allow create: if isSignedIn() &&
+                       isValidId(roomId) &&
+                       incoming().hostId == request.auth.uid &&
+                       (request.auth.uid in incoming().memberUids) &&
+                       incoming().keys().hasAll(['hostId', 'hostName', 'roomName', 'inviteCode', 'publicRoom', 'memberUids', 'playing', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['hostId', 'hostName', 'roomName', 'inviteCode', 'publicRoom', 'memberUids', 'currentTrackId', 'currentTrackTitle', 'currentTrackArtist', 'currentTrackCover', 'currentTrackStreamUrl', 'playing', 'createdAt', 'updatedAt']) &&
+                       isValidMusicRoom(incoming());
+      allow update: if isSignedIn() &&
+                       isValidId(roomId) &&
+                       isValidMusicRoom(incoming()) &&
+                       incoming().hostId == existing().hostId &&
+                       incoming().inviteCode == existing().inviteCode &&
+                       incoming().createdAt == existing().createdAt && (
+                         // Action: Join Room
+                         ((request.auth.uid in incoming().memberUids) && incoming().diff(existing()).affectedKeys().hasOnly(['memberUids', 'updatedAt'])) ||
+                         // Action: Sync Track / Playback by Member or Host
+                         ((request.auth.uid in existing().memberUids) && incoming().diff(existing()).affectedKeys().hasOnly(['currentTrackId', 'currentTrackTitle', 'currentTrackArtist', 'currentTrackCover', 'currentTrackStreamUrl', 'playing', 'updatedAt'])) ||
+                         // Action: Host Rename / Visibility
+                         (existing().hostId == request.auth.uid && incoming().diff(existing()).affectedKeys().hasOnly(['roomName', 'publicRoom', 'updatedAt']))
+                       );
+      allow delete: if isSignedIn() && isValidId(roomId) && existing().hostId == request.auth.uid;
+
+      match /messages/{messageId} {
+        allow get: if isSignedIn() && isValidId(messageId) && (existing().publicRoom == true || existing().senderId == request.auth.uid);
+        allow list: if isSignedIn() && (resource.data.publicRoom == true || resource.data.senderId == request.auth.uid);
+        allow create: if isSignedIn() &&
+                         isValidId(messageId) &&
+                         incoming().senderId == request.auth.uid &&
+                         incoming().roomId == roomId &&
+                         incoming().keys().hasAll(['roomId', 'senderId', 'senderName', 'text', 'publicRoom', 'createdAt']) &&
+                         incoming().keys().hasOnly(['roomId', 'senderId', 'senderName', 'text', 'publicRoom', 'createdAt']) &&
+                         isValidRoomMessage(incoming());
+        allow update: if false;
+        allow delete: if isSignedIn() && isValidId(messageId) && existing().senderId == request.auth.uid;
+      }
+    }
+  }
+}

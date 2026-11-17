@@ -1,0 +1,203 @@
+{
+  "entities": {
+    "UserPrivate": {
+      "title": "UserPrivate",
+      "description": "Private user account data including PII and personal app preferences.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "email": { "type": "string" },
+        "username": { "type": "string" },
+        "displayName": { "type": "string" },
+        "followingArtistIds": { "type": "array" },
+        "streakDays": { "type": "integer" },
+        "lastActiveDate": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "username", "displayName", "createdAt", "updatedAt"]
+    },
+    "PublicProfile": {
+      "title": "PublicProfile",
+      "description": "Public discoverable profile card for @username search, avatar frames, borders, and streaks.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "username": { "type": "string" },
+        "displayName": { "type": "string" },
+        "bio": { "type": "string" },
+        "avatarIndex": { "type": "integer" },
+        "borderStyle": { "type": "string" },
+        "frameStyle": { "type": "string" },
+        "streakDays": { "type": "integer" },
+        "followersCount": { "type": "integer" },
+        "discoverable": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "username", "displayName", "discoverable", "createdAt", "updatedAt"]
+    },
+    "SharedPlaylist": {
+      "title": "SharedPlaylist",
+      "description": "Cloud playlist supporting sharing and playlist compatibility matching by link.",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string" },
+        "ownerName": { "type": "string" },
+        "name": { "type": "string" },
+        "shareCode": { "type": "string" },
+        "publicShared": { "type": "boolean" },
+        "trackTitles": { "type": "array" },
+        "trackArtists": { "type": "array" },
+        "trackIds": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "name", "shareCode", "publicShared", "createdAt", "updatedAt"]
+    },
+    "StoryItem": {
+      "title": "StoryItem",
+      "description": "Instagram-like story post including music cards, photo stories, quotes, and Streak Pads.",
+      "type": "object",
+      "properties": {
+        "authorId": { "type": "string" },
+        "authorUsername": { "type": "string" },
+        "mediaType": { "type": "string", "enum": ["PHOTO", "LYRIC", "STREAK_PAD", "TRACK"] },
+        "caption": { "type": "string" },
+        "trackId": { "type": "string" },
+        "trackTitle": { "type": "string" },
+        "trackArtist": { "type": "string" },
+        "streakCount": { "type": "integer" },
+        "accentColorHex": { "type": "string" },
+        "visibility": { "type": "string", "enum": ["public"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["authorId", "authorUsername", "mediaType", "caption", "visibility", "createdAt"]
+    },
+    "SocialPost": {
+      "title": "SocialPost",
+      "description": "Song repost and feed activity.",
+      "type": "object",
+      "properties": {
+        "authorId": { "type": "string" },
+        "authorUsername": { "type": "string" },
+        "trackId": { "type": "string" },
+        "trackTitle": { "type": "string" },
+        "trackArtist": { "type": "string" },
+        "coverUrl": { "type": "string" },
+        "caption": { "type": "string" },
+        "likesCount": { "type": "integer" },
+        "visibility": { "type": "string", "enum": ["public"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["authorId", "authorUsername", "trackId", "trackTitle", "trackArtist", "likesCount", "visibility", "createdAt", "updatedAt"]
+    },
+    "DirectChat": {
+      "title": "DirectChat",
+      "description": "1-on-1 direct message thread with mutual TikTok-style streak tracking.",
+      "type": "object",
+      "properties": {
+        "participantIds": { "type": "array" },
+        "participantNames": { "type": "array" },
+        "lastMessage": { "type": "string" },
+        "mutualStreak": { "type": "integer" },
+        "lastStreakDate": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["participantIds", "participantNames", "mutualStreak", "createdAt", "updatedAt"]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "Direct chat message with editable text and bubble style.",
+      "type": "object",
+      "properties": {
+        "chatId": { "type": "string" },
+        "senderId": { "type": "string" },
+        "senderName": { "type": "string" },
+        "participantIds": { "type": "array" },
+        "text": { "type": "string" },
+        "bubbleStyle": { "type": "string" },
+        "edited": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["chatId", "senderId", "senderName", "participantIds", "text", "bubbleStyle", "edited", "createdAt", "updatedAt"]
+    },
+    "MusicRoom": {
+      "title": "MusicRoom",
+      "description": "Discord-style synchronized listening lounge with invite links.",
+      "type": "object",
+      "properties": {
+        "hostId": { "type": "string" },
+        "hostName": { "type": "string" },
+        "roomName": { "type": "string" },
+        "inviteCode": { "type": "string" },
+        "publicRoom": { "type": "boolean" },
+        "memberUids": { "type": "array" },
+        "currentTrackId": { "type": "string" },
+        "currentTrackTitle": { "type": "string" },
+        "currentTrackArtist": { "type": "string" },
+        "currentTrackCover": { "type": "string" },
+        "currentTrackStreamUrl": { "type": "string" },
+        "playing": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["hostId", "hostName", "roomName", "inviteCode", "publicRoom", "memberUids", "playing", "createdAt", "updatedAt"]
+    },
+    "RoomMessage": {
+      "title": "RoomMessage",
+      "description": "Live chat message inside a Discord-style listening room.",
+      "type": "object",
+      "properties": {
+        "roomId": { "type": "string" },
+        "senderId": { "type": "string" },
+        "senderName": { "type": "string" },
+        "text": { "type": "string" },
+        "publicRoom": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["roomId", "senderId", "senderName", "text", "publicRoom", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserPrivate" },
+      "description": "Owner-only private user account document."
+    },
+    "/public_profiles/{userId}": {
+      "schema": { "$ref": "#/entities/PublicProfile" },
+      "description": "Discoverable public profile cards for search, streaks, borders, and frames."
+    },
+    "/shared_playlists/{playlistId}": {
+      "schema": { "$ref": "#/entities/SharedPlaylist" },
+      "description": "Shareable playlists for link distribution and compatibility matching."
+    },
+    "/stories/{storyId}": {
+      "schema": { "$ref": "#/entities/StoryItem" },
+      "description": "Instagram-style stories and Streak Pads."
+    },
+    "/posts/{postId}": {
+      "schema": { "$ref": "#/entities/SocialPost" },
+      "description": "Music repost feed items."
+    },
+    "/chats/{chatId}": {
+      "schema": { "$ref": "#/entities/DirectChat" },
+      "description": "Direct messaging threads with mutual streaks."
+    },
+    "/chats/{chatId}/messages/{messageId}": {
+      "schema": { "$ref": "#/entities/ChatMessage" },
+      "description": "Editable direct chat message bubbles."
+    },
+    "/rooms/{roomId}": {
+      "schema": { "$ref": "#/entities/MusicRoom" },
+      "description": "Discord-style listening rooms."
+    },
+    "/rooms/{roomId}/messages/{messageId}": {
+      "schema": { "$ref": "#/entities/RoomMessage" },
+      "description": "Listening room live chat messages."
+    }
+  }
+}

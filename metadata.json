@@ -1,0 +1,6 @@
+{
+  "name": "Musica",
+  "description": "iOS Liquid Glass music streaming, synced lyrics, AI assistant, poster studio, and social listening rooms by XenProject.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
